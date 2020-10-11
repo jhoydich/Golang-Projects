@@ -29,7 +29,7 @@ func handleConn(c net.Conn) {
 	defer c.Close()
 	for {
 
-		data, err := bufio.NewReader(c).ReadLine('\n')
+		data, err := bufio.NewReader(c).ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
