@@ -12,10 +12,12 @@ import(
 var flag bool = false
 
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
-	topic := msg.Topic()
+	//topic := msg.Topic()
 	payload := msg.Payload()
+	fmt.Println(string(payload))
 	//fmt.Println(string(payload))
-	if topic == "esp/test" && string(payload) == "request" {
+	//if topic == "esp/test" && string(payload) == "request" {
+		/*
 		if flag == true {
 			token := client.Publish("esp/led", 0, false, "1")
 			flag = false
@@ -25,8 +27,10 @@ var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 			flag = true
 			token.Wait()
 		}
+		*/
+		
 		//fmt.Println(flag)
-	}
+	//}
 	
 }
 
