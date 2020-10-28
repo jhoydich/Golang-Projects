@@ -6,35 +6,33 @@ import(
 	_ "errors"
 	"time"
 	"os"
+	"sync"
 )
 
+type plant struct {
+	t time.Time
+	id string
+	topic string
+	payload string
+}
 
-var flag bool = false
+var p plant
+
+var wg sync.WaitGroup
+
+var ch chan string = make(chan string, 20)
 
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
-	//topic := msg.Topic()
-	payload := msg.Payload()
-	fmt.Println(string(payload))
-	//fmt.Println(string(payload))
-	//if topic == "esp/test" && string(payload) == "request" {
-		/*
-		if flag == true {
-			token := client.Publish("esp/led", 0, false, "1")
-			flag = false
-			token.Wait()
-		} else {
-			token := client.Publish("esp/led", 0, false, "0")
-			flag = true
-			token.Wait()
-		}
-		*/
-		
-		//fmt.Println(flag)
-	//}
-	
+	wg.Add(1)
+	topic := string(msg.Topic())
+	payload := string(msg.Payload())
+	go dataSend(ch, topic, payload)
 }
 
 func main() {
+	go chanDisplay(ch)
+	go chanDisplay(ch)
+	go dump(ch)
 	//qosErr := errors.New("QOS needs to be from 0 to 2")
 	//Options for the MQTT connection
 	opts := MQTT.NewClientOptions().AddBroker("tcp://broker.hivemq.com:1883")
@@ -50,36 +48,32 @@ func main() {
 		fmt.Println(token.Error())
 		os.Exit(1)
 	}
+	go chanDisplay(ch)
 	
-
 	for {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 200)
 	}
 }
 
-/*Func to publish 
-func Publish(topic string, msg string, qos uint16, c Client) error {
-	if qos > 2 {
-		return qosError
-	}
-	token := c.Publish(topic, qos, false, msg) 
-	token.Wait()
-
-	time.Sleep(time.Second * 1)
-	return nil
-}
-
-//Subscribe function
-func Subscribe(topic string, msg string, qos uint16, c Client) error {
-	if qos > 2 {
-		return qosError
-	}
-	if token := c.Publish(topic, qos, nil); token.Wait() && token.Error() != nil {
-		fmt.Println(token.Error())
-		os.Exit(1)
+func chanDisplay(ch <- chan string) {
+	
+	x := <-ch
+	if x != ""{
+		fmt.Println(x)
 	}
 	
-
-	return nil
 }
-*/
+
+func dump(ch chan string) {
+	 
+	 for {
+		 time.Sleep(time.Millisecond * 500)
+		 ch<- ""
+	 }
+}
+
+func dataSend(ch chan<- string, topic string, payload string) {
+	defer wg.Done()
+	ch <- payload
+	ch <- topic
+}
