@@ -1,4 +1,4 @@
-package main
+	package main
 
 //gets new data 
 
@@ -11,7 +11,7 @@ import (
 	"os"
 	"database/sql"
 	"strings"
-	"github.com/google/uuid"
+	"strconv"
 	_ "github.com/lib/pq"
 
 )
@@ -20,7 +20,7 @@ const (
 	host = "localhost"
 	port = 5432
 	user = "postgres"
-	password = "P3rmaS0rt"
+	password = ""
 	dbname = "sampleDB"
 )
 
@@ -29,10 +29,14 @@ var db *sql.DB
 
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	topic := msg.Topic()
-	payload := float64(msg.Payload())
-	
+	payload := msg.Payload()
+	s := string(payload)
+	p, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(topic)
-	fmt.Println(string(payload))	
+	go dbInsert(db, topic, p)		
 }
 
 func main() {
@@ -44,7 +48,11 @@ func main() {
 		panic(err)
 	}
 
-	mqttConnect()	
+	mqttConnect()
+	
+	for {
+		time.Sleep(time.Millisecond * 500)
+	}
 }
 
 func dbConnect () *sql.DB {
@@ -57,39 +65,15 @@ func dbConnect () *sql.DB {
 	return db
 }
 
-//Plant check will see if the plant in the topic is in the db table listing all plants
-func plantCheck(db *sql.DB, topic string, payload float64) {
-	var id uuid.UUID
-	l := strings.Split(topic, "/")
-	user := l[0]
-	plant := l[1]
-	t := l[2]
-
-	nameqry := `SELECT dev-id FROM plantlist WHERE plantName=$1 and username=$2;`
-	nameinsert := `INSERT INTO plantlist (plantname, username, dev-id) VALUES ($1, $2, $3);`
-
-	
-	fmt.Println(time.Now())
-	row := db.QueryRow(nameqry, plant, user)
-	switch err := row.Scan(&id); err {
-	case sql.ErrNoRows:
-		id = uuid.New()
-		_, err = db.Exec(nameinsert, plant, user, id)
-		dbInsert(db, t, payload, id)
-	case nil:
-		dbInsert(db, t, payload, dev-id)
-		fmt.Println(time.Now())
-	default:
-		panic(err)
-	 }
-
-
-
-}
 
 func dbInsert(db *sql.DB, topic string, payload float64) {
-	stmt := `INSERT INTO plantdata (dtype, payload, dev-id) VALUES ($1, $2, $3)`
-	_, err := db.Exec(stmt, topic, payload)
+	l := strings.Split(topic, "/")
+	
+	t := l[1]
+
+
+	stmt := `INSERT INTO plantdata (dtype, payload) VALUES ($1, $2)`
+	_, err := db.Exec(stmt, t, payload)
 	if err != nil {
 		panic(err)
 	}
@@ -107,9 +91,8 @@ func mqttConnect() {
 		panic(token.Error())
 	}
 
-	if token := c.Subscribe("jhoy/plant/temp", 0, f); token.Wait() && token.Error() != nil {
+	if token := c.Subscribe("jsh/#", 0, f); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
 		os.Exit(1)
 	}
 }
-
