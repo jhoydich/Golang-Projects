@@ -67,19 +67,27 @@ func dbConnect () *sql.DB {
 
 
 func dbInsert(db *sql.DB, topic string, payload float64) {
-	l := strings.Split(topic, "/")
+	//time of message reception, only care about minute
+	t := time.Now().Format("02 Jan 06 15:04 MST")
 	
-	t := l[1]
+	//splitting the topic, getting the subtopic and device id
+	l := strings.Split(topic, "/")
+	id := l[0]
+	top := l[1]
+	
+	
 
-
-	stmt := `INSERT INTO plantdata (dtype, payload) VALUES ($1, $2)`
-	_, err := db.Exec(stmt, t, payload)
+	//sql statement to insert into database
+	stmt := `INSERT INTO plantdata (dtype, payload, dev-id, time) VALUES ($1, $2, $3, $4)`
+	_, err := db.Exec(stmt, top, payload, id, t)
 	if err != nil {
 		panic(err)
 	}
 
 }
 
+
+//function connecting to the broker and subscribing to the necessary topics
 func mqttConnect() {
 	opts := MQTT.NewClientOptions().AddBroker("tcp://broker.hivemq.com:1883")
 	opts.SetClientID("Device-sub")
@@ -91,6 +99,7 @@ func mqttConnect() {
 		panic(token.Error())
 	}
 
+	//subscribing to device
 	if token := c.Subscribe("jsh/#", 0, f); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
 		os.Exit(1)
